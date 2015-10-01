@@ -2159,18 +2159,22 @@ class ODFTranslator(nodes.GenericNodeVisitor):
         dpi = (72, 72)
         if PIL is not None and source in self.image_dict:
             filename, destination = self.image_dict[source]
-            imageobj = PIL.Image.open(filename, 'r')
-            dpi = imageobj.info.get('dpi', dpi)
-            # dpi information can be (xdpi, ydpi) or xydpi
-            try: iter(dpi)
-            except: dpi = (dpi, dpi)
-        else:
-            imageobj = None
+            # PIL fails to open valid images, e.g. vector images
+            # but that's ok if dimensions were fully specified
+            try:
+                imageobj = PIL.Image.open(filename, 'r')
+                dpi = imageobj.info.get('dpi', dpi)
+                # dpi information can be (xdpi, ydpi) or xydpi
+                try: iter(dpi)
+                except: dpi = (dpi, dpi)
+            except:
+                # hopefully image dimensions were specified
+                pass
 
         if width is None or height is None:
             if imageobj is None:
                 raise RuntimeError(
-                    'image size not fully specified and PIL not installed')
+                    'image size not fully specified and PIL missing or failed to open image')
             if width is None: width = [imageobj.size[0], 'px']
             if height is None: height = [imageobj.size[1], 'px']
 
